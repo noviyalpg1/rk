@@ -1,0 +1,636 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Calculator, BookOpen, Languages, FlaskConical, Leaf, Monitor, 
+  ShieldCheck, Menu, X, GraduationCap, PlayCircle, Layers, Book, 
+  HelpCircle, FileText, Star, ExternalLink, Edit, Trash2, Users, 
+  CheckCircle, ArrowLeft, FolderOpen, Calendar, PlusCircle 
+} from 'lucide-react';
+
+// --- DATA AWAL ---
+const INITIAL_MEDIA = [
+  { id: 1, title: "Aljabar Dasar", subject: "Matematika", type: "Media Pembelajaran", classGrade: "4", rating: 5, link: "https://youtube.com", desc: "Pengenalan variabel dan konstanta.", date: "12 Okt 2023" },
+  { id: 2, title: "Puisi Lama", subject: "Bahasa Indonesia", type: "E-Book", classGrade: "5", rating: 4, link: "https://google.com", desc: "Kumpulan pantun dan gurindam.", date: "15 Okt 2023" },
+  { id: 3, title: "Teknik Passing", subject: "PJOK", type: "Video Pembelajaran", classGrade: "6", rating: 5, link: "https://youtube.com", desc: "Teknik dasar passing bola basket.", date: "20 Okt 2023" },
+  { id: 4, title: "Rantai Makanan", subject: "IPAS", type: "Kuis", classGrade: "4", rating: 4, link: "https://google.com", desc: "Latihan soal tentang rantai makanan.", date: "22 Okt 2023" },
+  { id: 5, title: "Aksara Lampung", subject: "Bahasa Lampung", type: "Artikel", classGrade: "3", rating: 5, link: "https://google.com", desc: "Mengenal induk huruf.", date: "25 Okt 2023" }
+];
+
+const INITIAL_CONTRIBUTORS = [
+  { id: 101, name: "Agus Setiawan", role: "Kepala Sekolah", initials: "AS", desc: "Penanggung jawab utama program digitalisasi sekolah." },
+  { id: 102, name: "Rina Larasati", role: "Guru Penggerak", initials: "RL", desc: "Koordinator materi Bahasa dan Literasi digital." },
+  { id: 103, name: "Budi Pratama", role: "Tim IT & Developer", initials: "BP", desc: "Pengembang sistem dan pemeliharaan server." },
+  { id: 104, name: "Siti Nurhaliza", role: "Guru Kelas 1", initials: "SN", desc: "Kreator konten pembelajaran interaktif multimedia." }
+];
+
+// --- COMPONENTS ---
+
+export default function App() {
+  // Navigation State
+  const [view, setView] = useState('home'); // 'home', 'subject'
+  const [activeSubject, setActiveSubject] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('');
+
+  // Data State
+  const [mediaData, setMediaData] = useState(INITIAL_MEDIA);
+  const [contributors, setContributors] = useState(INITIAL_CONTRIBUTORS);
+
+  // Admin Modal State
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [adminTab, setAdminTab] = useState('media'); // 'media', 'kontributor'
+  
+  // Form/Editing State
+  const [editingMedia, setEditingMedia] = useState(null);
+  const [editingContributor, setEditingContributor] = useState(null);
+  
+  // Toast State
+  const [toast, setToast] = useState({ show: false, title: '', message: '' });
+
+  // --- HANDLERS ---
+
+  const handleNavigate = (sectionId) => {
+    if (view !== 'home') {
+      setView('home');
+      setTimeout(() => {
+        const element = document.getElementById(sectionId);
+        if (element) element.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } else {
+      const element = document.getElementById(sectionId);
+      if (element) element.scrollIntoView({ behavior: 'smooth' });
+    }
+    setMobileMenuOpen(false);
+  };
+
+  const handleOpenSubject = (subject) => {
+    setActiveSubject(subject);
+    setView('subject');
+    window.scrollTo(0, 0);
+  };
+
+  const checkAdminAccess = () => {
+    // Simple prompt for demo purposes
+    // const password = window.prompt("Masukkan Kode Admin (Demo: rahasia):");
+    // if (password === "rahasia") {
+      setIsAdminOpen(true);
+      setMobileMenuOpen(false);
+    // } else if (password !== null) {
+    //   alert("Kode salah!");
+    // }
+  };
+
+  const showToast = (title, message) => {
+    setToast({ show: true, title, message });
+    setTimeout(() => setToast({ show: false, title: '', message: '' }), 3000);
+  };
+
+  // --- CRUD HANDLERS (MEDIA) ---
+
+  const handleSaveMedia = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const newItem = {
+      id: editingMedia ? editingMedia.id : Date.now(),
+      title: formData.get('title'),
+      subject: formData.get('subject'),
+      classGrade: formData.get('classGrade'),
+      type: formData.get('type'),
+      rating: formData.get('rating'),
+      link: formData.get('link'),
+      desc: formData.get('desc'),
+      date: editingMedia ? editingMedia.date : new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: 'numeric'})
+    };
+
+    if (editingMedia) {
+      setMediaData(mediaData.map(item => item.id === newItem.id ? newItem : item));
+      showToast("Berhasil", "Data media diperbarui.");
+    } else {
+      setMediaData([...mediaData, newItem]);
+      showToast("Berhasil", "Data media ditambahkan.");
+    }
+    setEditingMedia(null);
+    e.target.reset();
+  };
+
+  const handleDeleteMedia = (id) => {
+    if (window.confirm('Hapus media ini?')) {
+      setMediaData(mediaData.filter(item => item.id !== id));
+      showToast("Terhapus", "Data media dihapus.");
+    }
+  };
+
+  // --- CRUD HANDLERS (CONTRIBUTOR) ---
+
+  const handleSaveContributor = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const newItem = {
+      id: editingContributor ? editingContributor.id : Date.now(),
+      name: formData.get('name'),
+      role: formData.get('role'),
+      initials: formData.get('initials').toUpperCase(),
+      desc: formData.get('desc')
+    };
+
+    if (editingContributor) {
+      setContributors(contributors.map(item => item.id === newItem.id ? newItem : item));
+      showToast("Berhasil", "Data kontributor diperbarui.");
+    } else {
+      setContributors([...contributors, newItem]);
+      showToast("Berhasil", "Kontributor ditambahkan.");
+    }
+    setEditingContributor(null);
+    e.target.reset();
+  };
+
+  const handleDeleteContributor = (id) => {
+    if (window.confirm('Hapus kontributor ini?')) {
+      setContributors(contributors.filter(item => item.id !== id));
+      showToast("Terhapus", "Kontributor dihapus.");
+    }
+  };
+
+  // --- HELPER COMPONENTS ---
+
+  const SubjectCard = ({ subject, icon: Icon, desc }) => (
+    <div 
+      onClick={() => handleOpenSubject(subject)} 
+      className="cursor-pointer group p-8 bg-gray-50 rounded-2xl hover:bg-white border border-transparent hover:border-red-100 hover:shadow-xl hover:shadow-red-900/5 transition-all duration-300 transform hover:-translate-y-1"
+    >
+      <div className="w-14 h-14 bg-white rounded-xl shadow-sm flex items-center justify-center text-red-600 mb-6 group-hover:bg-red-600 group-hover:text-white transition-colors duration-300">
+        <Icon size={28} />
+      </div>
+      <h3 className="text-xl font-bold text-gray-900 mb-3">{subject}</h3>
+      <p className="text-gray-600 text-sm">{desc}</p>
+    </div>
+  );
+
+  return (
+    <div className="font-sans text-gray-800 antialiased bg-gray-50 selection:bg-red-600 selection:text-white overflow-x-hidden flex flex-col min-h-screen">
+      {/* --- NAVBAR --- */}
+      <nav className="fixed w-full z-50 transition-all duration-300 bg-white/95 backdrop-blur-md border-b border-red-100 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-10">
+            <div className="flex-shrink-0 flex items-center gap-2 cursor-pointer" onClick={() => setView('home')}>
+              <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-red-500/30">R</div>
+              <span className="font-bold text-xl tracking-tight text-gray-900">Ruang <span className="text-red-600">Komunitas</span></span>
+            </div>
+            
+            {/* Desktop Menu */}
+            <div className="hidden md:flex space-x-8 items-center">
+              <button onClick={() => setView('home')} className="text-gray-600 hover:text-red-600 font-medium transition duration-300">Beranda</button>
+              <button onClick={() => handleNavigate('services')} className="text-gray-600 hover:text-red-600 font-medium transition duration-300">Program Belajar</button>
+              <button onClick={() => handleNavigate('contributors')} className="text-gray-600 hover:text-red-600 font-medium transition duration-300">Kontributor</button>
+              <button onClick={checkAdminAccess} className="px-5 py-2.5 bg-gray-900 text-white font-semibold rounded-full hover:bg-gray-700 transition duration-300 text-sm flex items-center gap-2 shadow-md">
+                <ShieldCheck size={16} /> Admin
+              </button>
+            </div>
+
+            {/* Mobile Menu Button */}
+            <div className="md:hidden flex items-center">
+              <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-gray-600 hover:text-red-600 focus:outline-none">
+                {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden absolute top-full left-0 w-full bg-white border-t border-gray-100 shadow-xl animate-fade-in">
+            <div className="px-4 pt-2 pb-6 space-y-2">
+              <button onClick={() => { setView('home'); setMobileMenuOpen(false); }} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-red-600 hover:bg-red-50 rounded-md">Beranda</button>
+              <button onClick={() => handleNavigate('services')} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-red-600 hover:bg-red-50 rounded-md">Program Belajar</button>
+              <button onClick={() => handleNavigate('contributors')} className="block w-full text-left px-3 py-3 text-base font-medium text-gray-700 hover:text-red-600 hover:bg-red-50 rounded-md">Kontributor</button>
+              <button onClick={checkAdminAccess} className="block w-full text-left px-3 py-3 text-base font-bold text-red-600 bg-red-50 rounded-md">Admin Panel</button>
+            </div>
+          </div>
+        )}
+      </nav>
+
+      {/* --- MAIN CONTENT --- */}
+      <main className="flex-grow pt-20">
+        
+        {/* VIEW: HOME */}
+        {view === 'home' && (
+          <div className="animate-fade-in">
+            {/* Hero Section */}
+            <section className="relative pt-12 pb-20 lg:pt-20 lg:pb-28 overflow-hidden">
+              <div className="absolute top-0 right-0 -z-10 w-1/2 h-full bg-gradient-to-bl from-red-50 to-transparent opacity-60 rounded-bl-full"></div>
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                  <div className="text-center lg:text-left">
+                    <div className="inline-flex items-center px-3 py-1 rounded-full border border-red-200 bg-red-50 text-red-600 text-sm font-semibold mb-6">
+                      <span className="flex h-2 w-2 rounded-full bg-red-600 mr-2"></span>Ruang Digital Terpopuler #1
+                    </div>
+                    <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
+                      Bangun Ruang Digital yang <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-red-800">Bermakna & Menyenangkan</span>
+                    </h1>
+                    <p className="text-lg text-gray-600 mb-8 leading-relaxed max-w-2xl mx-auto lg:mx-0">
+                      Kami membantu guru-guru mengoptimalkan layanan digital yang berdampak nyata.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                      <button onClick={() => handleNavigate('services')} className="px-8 py-4 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition duration-300 shadow-lg shadow-red-600/30">
+                        Mulai Belajar
+                      </button>
+                    </div>
+                  </div>
+                  <div className="relative lg:h-auto flex justify-center animate-float">
+                    <div className="relative w-full max-w-md aspect-square bg-white rounded-2xl shadow-2xl border border-gray-100 flex items-center justify-center overflow-hidden">
+                      <div className="absolute top-0 w-full h-2 bg-gradient-to-r from-red-500 to-red-700"></div>
+                      <GraduationCap size={120} className="text-red-100" />
+                      <div className="absolute bottom-10 px-6 py-3 bg-white/80 backdrop-blur rounded-lg shadow-lg border border-gray-100 flex items-center gap-3">
+                        <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="font-bold text-gray-800">Kelas Aktif</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Services Section */}
+            <section id="services" className="py-20 bg-white">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="text-center mb-16">
+                  <span className="text-red-600 font-bold tracking-wider uppercase text-sm">Program Belajar</span>
+                  <h2 className="mt-2 text-3xl md:text-4xl font-extrabold text-gray-900">Mata Pelajaran Unggulan</h2>
+                  <p className="mt-4 text-gray-500">Klik salah satu mata pelajaran untuk masuk ke ruang kelas digital.</p>
+                  <div className="w-20 h-1 bg-red-600 mx-auto mt-4 rounded-full"></div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+                  <SubjectCard subject="Matematika" icon={Calculator} desc="Materi hitungan dan logika." />
+                  <SubjectCard subject="Bahasa Indonesia" icon={BookOpen} desc="Literasi dan tata bahasa." />
+                  <SubjectCard subject="Bahasa Inggris" icon={Languages} desc="English Conversation & Grammar." />
+                  <SubjectCard subject="IPA" icon={FlaskConical} desc="Eksperimen dan pengetahuan alam." />
+                  <SubjectCard subject="IPAS" icon={Leaf} desc="Ilmu Pengetahuan Alam & Sosial." />
+                  <SubjectCard subject="TIK" icon={Monitor} desc="Laboratorium komputer." />
+                </div>
+                
+                <div className="bg-red-50 rounded-xl p-8 text-center border border-red-100">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Jelajahi Pelajaran Lainnya</h3>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {['Pendidikan Agama', 'Pendidikan Pancasila', 'IPS', 'Seni/Budaya', 'PJOK', 'Bahasa Lampung', 'Lainnya'].map((subj) => (
+                      <button 
+                        key={subj}
+                        onClick={() => handleOpenSubject(subj)} 
+                        className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-red-600 hover:text-white hover:border-red-600 transition font-medium"
+                      >
+                        {subj}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Contributors Section */}
+            <section id="contributors" className="py-20 bg-gray-50 border-t border-gray-200">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="text-center mb-16">
+                  <span className="text-red-600 font-bold tracking-wider uppercase text-sm">Tim Kami</span>
+                  <h2 className="mt-2 text-3xl md:text-4xl font-extrabold text-gray-900">Kontributor Ruang Komunitas</h2>
+                  <p className="mt-4 text-gray-500">Dedikasi para pendidik dan praktisi untuk kemajuan pendidikan digital.</p>
+                  <div className="w-20 h-1 bg-red-600 mx-auto mt-4 rounded-full"></div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                  {contributors.map(person => (
+                    <div key={person.id} className="bg-white rounded-2xl shadow-md p-6 text-center hover:shadow-xl transition duration-300 border border-transparent hover:border-red-200 group">
+                      <div className="w-24 h-24 mx-auto bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center text-white text-3xl font-bold mb-4 shadow-lg group-hover:scale-110 transition duration-300">
+                        {person.initials}
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-900">{person.name}</h3>
+                      <p className="text-sm text-red-600 font-semibold mb-2">{person.role}</p>
+                      <p className="text-xs text-gray-500 mb-4 line-clamp-2">{person.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* VIEW: SUBJECT */}
+        {view === 'subject' && (
+          <div className="min-h-screen bg-gray-50 animate-slide-up">
+            <div className="bg-red-600 text-white pt-10 pb-20 rounded-b-[3rem] shadow-xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
+              <div className="max-w-7xl mx-auto px-4 relative z-10">
+                <button onClick={() => setView('home')} className="mb-6 flex items-center gap-2 text-red-100 hover:text-white transition cursor-pointer font-bold">
+                  <ArrowLeft size={18} /> Kembali ke Program Belajar
+                </button>
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div>
+                    <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide">Ruang Kelas Digital</span>
+                    <h1 className="text-4xl md:text-5xl font-extrabold mt-2">{activeSubject}</h1>
+                    <p className="text-red-100 mt-2 text-lg">Kumpulan materi ajar digital terkini.</p>
+                  </div>
+                  <div className="bg-white/10 p-4 rounded-xl backdrop-blur-sm border border-white/20">
+                    <div className="text-center">
+                      <p className="text-3xl font-bold">{mediaData.filter(item => item.subject === activeSubject).length}</p>
+                      <p className="text-xs text-red-100">Materi Tersedia</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="max-w-7xl mx-auto px-4 -mt-10 pb-20 relative z-20">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {mediaData.filter(item => item.subject === activeSubject).length === 0 ? (
+                  <div className="col-span-full text-center py-20">
+                    <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
+                      <FolderOpen size={40} />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-600">Belum ada materi</h3>
+                    <p className="text-gray-500">Hubungi Admin untuk menambahkan materi.</p>
+                  </div>
+                ) : (
+                  mediaData.filter(item => item.subject === activeSubject).map(item => {
+                    let Icon = FileText;
+                    let colorClass = 'bg-blue-100 text-blue-600';
+                    if(item.type === 'Video Pembelajaran') { Icon = PlayCircle; colorClass = 'bg-red-100 text-red-600'; }
+                    if(item.type === 'Media Pembelajaran') { Icon = Layers; colorClass = 'bg-orange-100 text-orange-600'; }
+                    if(item.type === 'E-Book') { Icon = Book; colorClass = 'bg-green-100 text-green-600'; }
+                    if(item.type === 'Kuis') { Icon = HelpCircle; colorClass = 'bg-purple-100 text-purple-600'; }
+                    if(item.type === 'Artikel') { Icon = FileText; colorClass = 'bg-teal-100 text-teal-600'; }
+
+                    return (
+                      <div key={item.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition duration-300 group flex flex-col h-full">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className={`w-10 h-10 rounded-lg ${colorClass} flex items-center justify-center`}>
+                            <Icon size={20} />
+                          </div>
+                          <div className="text-right">
+                            <span className="block text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded mb-1">Kelas {item.classGrade}</span>
+                            <span className="text-xs text-gray-400">{item.type}</span>
+                          </div>
+                        </div>
+                        <h3 className="font-bold text-lg text-gray-900 mb-2 group-hover:text-red-600 transition leading-tight">{item.title}</h3>
+                        <p className="text-gray-600 text-sm mb-4 line-clamp-2 flex-grow">{item.desc}</p>
+                        <div className="mt-auto">
+                          <div className="flex items-center mb-4 text-yellow-400 text-xs">
+                            {[...Array(parseInt(item.rating))].map((_, i) => <Star key={i} size={12} fill="currentColor" className="mr-0.5" />)}
+                            <span className="text-gray-400 ml-2">({item.rating}.0)</span>
+                          </div>
+                          <div className="flex justify-between items-center border-t border-gray-100 pt-4">
+                            <span className="text-xs text-gray-400 flex items-center gap-1"><Calendar size={12} /> {item.date}</span>
+                            <a href={item.link} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-gray-900 text-white text-xs font-bold rounded-full hover:bg-red-600 transition flex items-center gap-2">
+                              Buka Materi <ExternalLink size={12} />
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* --- FOOTER --- */}
+      <footer className="bg-gray-900 text-white pt-10 pb-6 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <p className="text-gray-500 text-sm">&copy; 2024 Ruang Komunitas. Developed for Education.</p>
+        </div>
+      </footer>
+
+      {/* --- TOAST --- */}
+      {toast.show && (
+        <div className="fixed top-4 right-4 z-[100] animate-slide-left">
+          <div className="bg-white border-l-4 border-red-600 rounded shadow-2xl p-4 flex items-start gap-3 min-w-[300px]">
+            <div className="flex-shrink-0 text-red-600 mt-0.5"><CheckCircle size={20} /></div>
+            <div className="flex-1">
+              <h3 className="font-bold text-gray-900 text-sm">{toast.title}</h3>
+              <p className="text-sm text-gray-600 mt-1">{toast.message}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- ADMIN MODAL --- */}
+      {isAdminOpen && (
+        <div className="fixed inset-0 z-[60] overflow-y-auto" role="dialog" aria-modal="true">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm" onClick={() => setIsAdminOpen(false)}></div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div className="inline-block align-bottom bg-gray-50 rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-6xl w-full">
+              
+              {/* Header */}
+              <div className="bg-gray-900 text-white px-6 py-4 flex justify-between items-center">
+                <h3 className="text-xl font-bold flex items-center gap-2">
+                  <ShieldCheck className="text-red-500" size={20} /> Admin Panel
+                </h3>
+                <button type="button" className="text-gray-400 hover:text-white focus:outline-none" onClick={() => setIsAdminOpen(false)}>
+                  <X size={24} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-6 md:p-8 max-h-[80vh] overflow-y-auto">
+                <div className="flex flex-wrap gap-4 mb-8 border-b border-gray-200 pb-4 items-center">
+                  <button 
+                    onClick={() => setAdminTab('media')} 
+                    className={`flex-1 sm:flex-none px-6 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2 ${adminTab === 'media' ? 'bg-red-600 text-white shadow-lg' : 'bg-white text-gray-600 hover:bg-gray-200'}`}
+                  >
+                    <PlayCircle size={18} /> Kelola Media
+                  </button>
+                  <button 
+                    onClick={() => setAdminTab('kontributor')} 
+                    className={`flex-1 sm:flex-none px-6 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2 ${adminTab === 'kontributor' ? 'bg-red-600 text-white shadow-lg' : 'bg-white text-gray-600 hover:bg-gray-200'}`}
+                  >
+                    <Users size={18} /> Kelola Kontributor
+                  </button>
+                  {/* NEW ADD MENU BUTTON */}
+                  <div className="flex-grow sm:text-right mt-2 sm:mt-0">
+                    <button 
+                      onClick={() => { setAdminTab('media'); setEditingMedia(null); }} 
+                      className="px-6 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2 bg-green-600 text-white hover:bg-green-700 shadow-md ml-auto w-full sm:w-auto"
+                    >
+                      <PlusCircle size={18} /> Tambah Media
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tab: Media */}
+                {adminTab === 'media' && (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Form Media */}
+                    <div className="lg:col-span-1">
+                      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 relative">
+                        {/* Indicator if adding new */}
+                        {!editingMedia && (
+                          <div className="absolute top-0 right-0 p-2">
+                             <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-bl-lg font-bold">Mode: Tambah Baru</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between items-center mb-4">
+                          <h4 className="font-bold text-gray-800 text-lg">{editingMedia ? `Edit: ${editingMedia.title}` : 'Input Media Baru'}</h4>
+                          {editingMedia && (
+                            <button onClick={() => setEditingMedia(null)} className="text-xs text-red-600 font-bold hover:underline">Batal Edit</button>
+                          )}
+                        </div>
+                        <form onSubmit={handleSaveMedia} className="space-y-4">
+                          <div>
+                            <label className="block text-xs font-bold text-gray-600 mb-1">Judul Materi</label>
+                            <input name="title" defaultValue={editingMedia?.title} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-sm" placeholder="Contoh: Rumus Pythagoras" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-gray-600 mb-1">Mata Pelajaran</label>
+                            <select name="subject" defaultValue={editingMedia?.subject || 'Matematika'} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-sm bg-white">
+                              {['Matematika', 'Bahasa Indonesia', 'Bahasa Inggris', 'IPA', 'IPAS', 'IPS', 'Pendidikan Agama', 'Pendidikan Pancasila', 'Seni/Budaya', 'PJOK', 'Bahasa Lampung', 'TIK', 'Lainnya'].map(opt => (
+                                <option key={opt} value={opt}>{opt}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 mb-1">Kelas</label>
+                              <select name="classGrade" defaultValue={editingMedia?.classGrade || '1'} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-sm bg-white">
+                                {[1, 2, 3, 4, 5, 6].map(grade => <option key={grade} value={grade}>Kelas {grade}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-gray-600 mb-1">Rating</label>
+                              <select name="rating" defaultValue={editingMedia?.rating || '5'} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-sm bg-white">
+                                <option value="5">⭐⭐⭐⭐⭐</option>
+                                <option value="4">⭐⭐⭐⭐</option>
+                                <option value="3">⭐⭐⭐</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-gray-600 mb-1">Tipe Media</label>
+                            <select name="type" defaultValue={editingMedia?.type || 'Video Pembelajaran'} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-sm bg-white">
+                              {['Video Pembelajaran', 'Artikel', 'Media Pembelajaran', 'E-Book', 'Kuis'].map(t => <option key={t} value={t}>{t}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-gray-600 mb-1">Link Materi</label>
+                            <input name="link" type="url" defaultValue={editingMedia?.link || 'https://google.com'} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-sm" placeholder="https://..." />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-gray-600 mb-1">Deskripsi</label>
+                            <textarea name="desc" rows="2" defaultValue={editingMedia?.desc} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-sm" placeholder="Deskripsi singkat..."></textarea>
+                          </div>
+                          <button type="submit" className={`w-full py-2 text-white font-bold rounded-lg shadow-md transition text-sm ${editingMedia ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'}`}>
+                            {editingMedia ? 'Perbarui Data' : '+ Tambahkan Media'}
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+
+                    {/* List Media */}
+                    <div className="lg:col-span-2">
+                      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full flex flex-col">
+                        <h4 className="font-bold text-gray-800 text-lg mb-4">Daftar Media Pembelajaran</h4>
+                        <div className="flex-grow overflow-y-auto max-h-[500px] pr-2 space-y-3">
+                          {[...mediaData].reverse().map(item => (
+                            <div key={item.id} className={`p-3 rounded-lg border flex flex-col gap-2 hover:bg-gray-100 transition ${editingMedia?.id === item.id ? 'bg-yellow-50 border-yellow-300 ring-1 ring-yellow-300' : 'bg-gray-50 border-gray-100'}`}>
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="font-bold text-gray-800 text-sm line-clamp-1">{item.title}</p>
+                                  <p className="text-xs text-gray-500">{item.subject} • Kls {item.classGrade}</p>
+                                </div>
+                                <span className="text-xs bg-white border px-2 py-0.5 rounded text-red-600 font-bold">{item.type}</span>
+                              </div>
+                              <div className="flex gap-2 justify-end mt-1">
+                                <button onClick={() => setEditingMedia(item)} className="text-yellow-600 hover:text-yellow-700 text-xs px-2 py-1 rounded border border-yellow-200 bg-white hover:bg-yellow-50 flex items-center gap-1"><Edit size={12}/> Edit</button>
+                                <button onClick={() => handleDeleteMedia(item.id)} className="text-red-600 hover:text-red-700 text-xs px-2 py-1 rounded border border-red-200 bg-white hover:bg-red-50 flex items-center gap-1"><Trash2 size={12}/> Hapus</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab: Kontributor */}
+                {adminTab === 'kontributor' && (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Form Kontributor */}
+                    <div className="lg:col-span-1">
+                      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div className="flex justify-between items-center mb-4">
+                          <h4 className="font-bold text-gray-800 text-lg">{editingContributor ? `Edit: ${editingContributor.name}` : 'Input Kontributor'}</h4>
+                          {editingContributor && (
+                            <button onClick={() => setEditingContributor(null)} className="text-xs text-red-600 font-bold hover:underline">Batal</button>
+                          )}
+                        </div>
+                        <form onSubmit={handleSaveContributor} className="space-y-4">
+                          <div>
+                            <label className="block text-xs font-bold text-gray-600 mb-1">Nama Lengkap</label>
+                            <input name="name" defaultValue={editingContributor?.name} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-sm" placeholder="Budi Santoso" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-gray-600 mb-1">Jabatan / Role</label>
+                            <input name="role" defaultValue={editingContributor?.role} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-sm" placeholder="Guru Kelas 1" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-gray-600 mb-1">Inisial (2 Huruf)</label>
+                            <input name="initials" defaultValue={editingContributor?.initials} required maxLength={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-sm uppercase" placeholder="BS" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-gray-600 mb-1">Deskripsi Singkat</label>
+                            <textarea name="desc" rows="2" defaultValue={editingContributor?.desc} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-sm" placeholder="Spesialis multimedia..."></textarea>
+                          </div>
+                          <button type="submit" className="w-full py-2 bg-gray-800 text-white font-bold rounded-lg hover:bg-gray-900 shadow-md transition text-sm">
+                            {editingContributor ? 'Perbarui' : 'Simpan Kontributor'}
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+
+                    {/* List Kontributor */}
+                    <div className="lg:col-span-2">
+                      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full flex flex-col">
+                        <h4 className="font-bold text-gray-800 text-lg mb-4">Daftar Kontributor Terdaftar</h4>
+                        <div className="flex-grow overflow-y-auto max-h-[500px] pr-2 space-y-3">
+                          {contributors.map(person => (
+                            <div key={person.id} className="bg-gray-50 p-3 rounded-lg border border-gray-100 flex items-center justify-between gap-3 hover:bg-gray-100 transition">
+                              <div className="flex items-center gap-3 overflow-hidden">
+                                <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex-shrink-0 flex items-center justify-center font-bold text-xs border border-red-200">{person.initials}</div>
+                                <div className="min-w-0">
+                                  <p className="font-bold text-gray-800 text-sm truncate">{person.name}</p>
+                                  <p className="text-xs text-gray-500 truncate">{person.role}</p>
+                                </div>
+                              </div>
+                              <div className="flex gap-2 flex-shrink-0">
+                                <button onClick={() => setEditingContributor(person)} className="text-yellow-600 hover:text-yellow-700 text-xs px-2 py-1 rounded border border-yellow-200 bg-white hover:bg-yellow-50"><Edit size={12}/></button>
+                                <button onClick={() => handleDeleteContributor(person.id)} className="text-red-600 hover:text-red-700 text-xs px-2 py-1 rounded border border-red-200 bg-white hover:bg-red-50"><Trash2 size={12}/></button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Global CSS for animations */}
+      <style>{`
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
+        
+        @keyframes slide-up { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-slide-up { animation: slide-up 0.8s ease-out forwards; }
+        
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        
+        @keyframes slide-left { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+        .animate-slide-left { animation: slide-left 0.3s ease-out forwards; }
+      `}</style>
+    </div>
+  );
+}
